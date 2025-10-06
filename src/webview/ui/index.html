@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src {{cspSource}} blob: data:; font-src {{cspSource}}; style-src 'unsafe-inline' {{cspSource}}; script-src 'nonce-{{nonce}}';">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Context Kit</title>
+	<link rel="stylesheet" href="{{styleUri}}">
+</head>
+<body>
+	<header>
+		<strong id="headerTitle">Home</strong>
+		<button id="toggleView" class="icon-button" title="Manage saved prompts" aria-label="Manage saved prompts">
+			<svg id="settingsIcon" viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
+				<path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.63l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.07 7.07 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54a7.07 7.07 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.85a.5.5 0 0 0 .12.63l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.63l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.38 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.59-.24 1.13-.56 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.63l-2.03-1.58ZM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2Z"/>
+			</svg>
+			<svg id="backIcon" class="hidden" viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
+				<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+			</svg>
+		</button>
+	</header>
+	<section id="mainView" class="view">
+		<section id="controls">
+			<textarea id="promptInput" placeholder="Add personal instructions (optional)"></textarea>
+			<section id="metaPromptSection">
+				<div id="metaPromptList" class="meta-list message info">No saved prompts</div>
+			</section>
+			<input id="search" type="search" placeholder="Search files" />
+		</section>
+		<div class="tree-toolbar">
+			<label class="toggle no-margin"><input type="checkbox" id="selectAll" /> Select All</label>
+			<button id="refreshTree" class="icon-button" title="Refresh files" aria-label="Refresh files">
+				<svg viewBox="0 0 24 24" role="presentation" focusable="false" aria-hidden="true">
+					<path d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V8c2.76 0 5 2.24 5 5 0 1.64-.8 3.09-2.03 4h1.6A6.98 6.98 0 0 0 19 13c0-1.64-.59-3.14-1.57-4.35l.22-.3Z"/>
+					<path d="M6.35 17.65A7.95 7.95 0 0 0 12 20v3l5-5-5-5v3c-2.76 0-5-2.24-5-5 0-1.64.8-3.09 2.03-4H7.43A6.98 6.98 0 0 0 5 11c0 1.64.59 3.14 1.57 4.35l-.22.3Z"/>
+				</svg>
+			</button>
+		</div>
+		<section id="tree"></section>
+		<section id="summaryPanel">
+			<div class="checkbox-row">
+				<label class="toggle"><input type="checkbox" id="includePrompt" checked /> Include user instructions</label>
+			</div>
+			<div class="checkbox-row">
+				<label class="toggle"><input type="checkbox" id="includeSavedPrompts" checked /> Include saved prompts</label>
+			</div>
+			<div class="checkbox-row">
+				<label class="toggle"><input type="checkbox" id="includeFiles" checked /> Include files</label>
+			</div>
+			<div id="selectionInfo">No files selected</div>
+			<div class="message info" id="statusMessage"></div>
+			<button id="copyButton">Copy to Clipboard</button>
+		</section>
+	</section>
+	<section id="manageView" class="view hidden">
+		<div class="checkbox-row">
+			<label class="toggle"><input type="checkbox" id="respectGitignore" checked /> Respect .gitignore</label>
+		</div>
+		<form id="metaPromptForm">
+			<input id="metaPromptName" type="text" placeholder="Prompt name" />
+			<textarea id="metaPromptBody" placeholder="Prompt content"></textarea>
+			<div class="manage-actions">
+				<button id="metaPromptSave" type="submit">Save prompt</button>
+				<button id="metaPromptCancel" type="button" class="secondary hidden">Cancel</button>
+			</div>
+		</form>
+		<div class="message info" id="manageStatus"></div>
+		<div id="managePromptList"></div>
+	</section>
+	<script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>
