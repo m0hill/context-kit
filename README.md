@@ -94,12 +94,6 @@ pnpm run watch     # Watch mode for development
 - Binary files are not included in the context
 - Symbolic links are followed but may cause issues with circular references
 
-## Release Notes
-
-### 1.0.0
-
-Initial release of Context Kit
-
 ## License
 
 MIT

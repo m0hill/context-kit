@@ -2,7 +2,7 @@
   "name": "context-kit",
   "displayName": "Context Kit",
   "description": "Efficiently manage and copy file context for AI assistants with an intuitive tree view",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "MohilGarg",
   "author": {
     "name": "Mohil"
