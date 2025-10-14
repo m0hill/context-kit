@@ -80,6 +80,7 @@ export type ExtensionToWebviewMessage =
       includeFiles: boolean
       expanded: string[]
     }
+  | { type: 'fileIndex'; files: string[] }
   | { type: 'childrenLoaded'; path: string; children: WebviewNode[] }
   | {
       type: 'uiState'

@@ -7,7 +7,7 @@ import { getWorkspaceLabel, toPosix } from './utils'
 
 const ENTRY_CONCURRENCY = 16
 
-interface BuildDirectoryParams {
+interface DirectoryTraversalParams {
   directory: vscode.Uri
   label: string
   displayPath: string
@@ -42,7 +42,29 @@ export async function loadWorkspaceTree(respectGitignore: boolean): Promise<Tree
   return { nodes, files }
 }
 
-async function buildDirectory(params: BuildDirectoryParams): Promise<WebviewNode | undefined> {
+export async function collectWorkspaceFiles(
+  respectGitignore: boolean
+): Promise<Map<string, FileEntry>> {
+  const folders = vscode.workspace.workspaceFolders ?? []
+  const files = new Map<string, FileEntry>()
+  const gitignoreCache = new Map<string, readonly string[]>()
+  for (const folder of folders) {
+    const label = getWorkspaceLabel(folder.uri)
+    await traverseDirectory({
+      directory: folder.uri,
+      label,
+      displayPath: label,
+      relative: '',
+      respectGitignore,
+      patterns: [],
+      files,
+      gitignoreCache,
+    })
+  }
+  return files
+}
+
+async function buildDirectory(params: DirectoryTraversalParams): Promise<WebviewNode | undefined> {
   const { directory, label, displayPath, relative, respectGitignore, files, gitignoreCache } =
     params
 
@@ -129,6 +151,81 @@ async function buildDirectory(params: BuildDirectoryParams): Promise<WebviewNode
     ignored: false,
     children: childNodes.filter((node): node is WebviewNode => Boolean(node)),
   }
+}
+
+async function traverseDirectory(params: DirectoryTraversalParams): Promise<void> {
+  const { directory, displayPath, relative, respectGitignore, files, gitignoreCache } = params
+
+  let entries: [string, vscode.FileType][]
+  try {
+    entries = await vscode.workspace.fs.readDirectory(directory)
+  } catch (error) {
+    return
+  }
+
+  let patterns = respectGitignore ? params.patterns : []
+  if (respectGitignore) {
+    const hasGitignore = entries.some(
+      ([name, type]) => name === '.gitignore' && (type & vscode.FileType.File) !== 0
+    )
+    if (hasGitignore) {
+      const scoped = await loadGitignorePatterns(directory, relative, gitignoreCache)
+      if (scoped.length) {
+        patterns = [...patterns, ...scoped]
+      }
+    }
+  }
+  const matcher = respectGitignore && patterns.length ? ignore().add(patterns) : undefined
+
+  const filtered = entries
+    .filter(([name]) => name !== '.git')
+    .sort((a, b) => {
+      const aIsDir = (a[1] & vscode.FileType.Directory) !== 0
+      const bIsDir = (b[1] & vscode.FileType.Directory) !== 0
+      if (aIsDir !== bIsDir) {
+        return aIsDir ? -1 : 1
+      }
+      return a[0].localeCompare(b[0])
+    })
+
+  await mapWithConcurrency(filtered, ENTRY_CONCURRENCY, async ([name, type]) => {
+    const childUri = vscode.Uri.joinPath(directory, name)
+    let entryType = type
+    if ((entryType & vscode.FileType.SymbolicLink) !== 0) {
+      try {
+        entryType = (await vscode.workspace.fs.stat(childUri)).type
+      } catch (error) {
+        return
+      }
+    }
+    const childRelative = relative ? `${relative}/${name}` : name
+    const normalized = toPosix(childRelative)
+    const isIgnored = matcher
+      ? matcher.ignores(normalized) || matcher.ignores(`${normalized}/`)
+      : false
+    if (respectGitignore && isIgnored) {
+      return
+    }
+    if ((entryType & vscode.FileType.Directory) !== 0) {
+      await traverseDirectory({
+        directory: childUri,
+        label: name,
+        displayPath: `${displayPath}/${name}`,
+        relative: childRelative,
+        respectGitignore,
+        patterns,
+        files,
+        gitignoreCache,
+      })
+      return
+    }
+    if ((entryType & vscode.FileType.File) !== 0) {
+      files.set(`${displayPath}/${name}`, {
+        path: `${displayPath}/${name}`,
+        uri: childUri,
+      })
+    }
+  })
 }
 
 function createFileNode(

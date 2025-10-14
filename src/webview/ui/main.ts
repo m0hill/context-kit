@@ -5,6 +5,8 @@ const vscode = acquireVsCodeApi()
 let treeData = []
 let selected = new Set()
 let expanded = new Set()
+let fileIndex = []
+let searchMatches = null
 const loadingChildren = new Set()
 const pendingSelect = new Map()
 let filter = ''
@@ -135,6 +137,113 @@ function setManageStatus(text, level = 'info') {
   }
 }
 
+function setFileIndex(paths) {
+  fileIndex = Array.isArray(paths)
+    ? paths
+        .filter(path => typeof path === 'string')
+        .map(path => {
+          const lower = path.toLowerCase()
+          const nameIndex = path.lastIndexOf('/')
+          const name = nameIndex === -1 ? path : path.slice(nameIndex + 1)
+          return {
+            path,
+            lower,
+            nameLower: name.toLowerCase(),
+          }
+        })
+    : []
+  updateSearchMatches()
+}
+
+function updateSearchMatches() {
+  if (!filter || !fileIndex.length) {
+    searchMatches = null
+    return
+  }
+  searchMatches = findSearchMatches(filter)
+}
+
+function findSearchMatches(term) {
+  const results = []
+  for (const entry of fileIndex) {
+    const score = scoreEntry(term, entry)
+    if (score === null) {
+      continue
+    }
+    results.push({
+      path: entry.path,
+      lower: entry.lower,
+      score,
+    })
+  }
+  results.sort((a, b) => a.score - b.score || a.path.length - b.path.length)
+  return results
+}
+
+function scoreEntry(term, entry) {
+  const nameIndex = entry.nameLower.indexOf(term)
+  if (nameIndex !== -1) {
+    return nameIndex
+  }
+  const pathIndex = entry.lower.indexOf(term)
+  if (pathIndex !== -1) {
+    return 100 + pathIndex
+  }
+  const nameScore = subsequenceScore(term, entry.nameLower)
+  if (nameScore !== null) {
+    return 200 + nameScore
+  }
+  const pathScore = subsequenceScore(term, entry.lower)
+  if (pathScore !== null) {
+    return 300 + pathScore
+  }
+  return null
+}
+
+function subsequenceScore(term, candidate) {
+  if (!term || !candidate) {
+    return null
+  }
+  let score = 0
+  let lastIndex = -1
+  for (let i = 0; i < term.length; i += 1) {
+    const char = term[i]
+    const nextIndex = candidate.indexOf(char, lastIndex + 1)
+    if (nextIndex === -1) {
+      return null
+    }
+    score += nextIndex - lastIndex
+    lastIndex = nextIndex
+  }
+  return score
+}
+
+function fuzzyMatch(term, candidate) {
+  if (!term) {
+    return true
+  }
+  if (!candidate) {
+    return false
+  }
+  if (candidate.includes(term)) {
+    return true
+  }
+  return subsequenceScore(term, candidate) !== null
+}
+
+function isDescendantPath(ancestor, target) {
+  if (!ancestor || !target) {
+    return false
+  }
+  const ancestorLower = ancestor.toLowerCase()
+  const targetLower = target.toLowerCase()
+  if (targetLower === ancestorLower) {
+    return true
+  }
+  const prefix = ancestorLower.endsWith('/') ? ancestorLower : ancestorLower + '/'
+  return targetLower.startsWith(prefix)
+}
+
 function flatten(nodes) {
   const map = new Map()
   const visit = node => {
@@ -211,10 +320,21 @@ function findNodeByPath(nodes, path) {
 }
 
 function nodeMatches(node, term) {
-  if (node.label.toLowerCase().includes(term) || node.path.toLowerCase().includes(term)) {
+  if (!term) {
     return true
   }
-  return node.children?.some(child => nodeMatches(child, term)) ?? false
+  const labelLower = typeof node.label === 'string' ? node.label.toLowerCase() : ''
+  const pathLower = typeof node.path === 'string' ? node.path.toLowerCase() : ''
+  if (fuzzyMatch(term, labelLower) || fuzzyMatch(term, pathLower)) {
+    return true
+  }
+  if (node.children?.some(child => nodeMatches(child, term))) {
+    return true
+  }
+  if (node.type === 'folder' && Array.isArray(searchMatches) && searchMatches.length) {
+    return searchMatches.some(match => isDescendantPath(node.path, match.path))
+  }
+  return false
 }
 
 function filterNodes(nodes, term) {
@@ -238,6 +358,9 @@ function filterNodes(nodes, term) {
 }
 
 function getVisibleFilePaths() {
+  if (filter && Array.isArray(searchMatches) && searchMatches.length) {
+    return searchMatches.map(match => match.path)
+  }
   const visibleNodes = filterNodes(treeData, filter)
   const paths = []
   const visit = nodes => {
@@ -805,6 +928,7 @@ function applyViewMode(mode) {
 
 searchInput?.addEventListener('input', event => {
   filter = event.target.value.trim().toLowerCase()
+  updateSearchMatches()
   refreshTree()
 })
 
@@ -929,6 +1053,7 @@ window.addEventListener('message', event => {
       setIncludeSavedPromptsFromState(message.includeSavedPrompts)
       setIncludeFilesFromState(message.includeFiles)
       filter = searchInput?.value?.trim().toLowerCase() ?? ''
+      updateSearchMatches()
       setStatus('')
       refreshTree()
       setRefreshLoading(false)
@@ -977,6 +1102,13 @@ window.addEventListener('message', event => {
       applyViewMode(message.viewMode === 'manage' ? 'manage' : 'main')
       setRefreshLoading(false)
       break
+    case 'fileIndex': {
+      setFileIndex(Array.isArray(message.files) ? message.files : [])
+      if (filter) {
+        refreshTree()
+      }
+      break
+    }
     case 'selectionSummary': {
       const summary = message.summary
       if (!selectionInfo) {

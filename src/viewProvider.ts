@@ -6,8 +6,10 @@ import { copySelection } from './copy'
 import { IconThemeManager, IconThemeNodeIcon } from './iconTheme'
 import { addMetaPrompt, deleteMetaPrompt, loadMetaPrompts, updateMetaPrompt } from './metaPrompts'
 import { ContextKitState } from './state'
+import { collectWorkspaceFiles } from './tree'
 import {
   ExtensionToWebviewMessage,
+  FileEntry,
   TreeData,
   VIEW_ID,
   WebviewNode,
@@ -77,6 +79,7 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
       this.state.setFiles(new Map())
       this.state.clearSelection()
       this.state.clearExpanded()
+      this.postFileIndex(new Map())
       this.view.webview.postMessage({ type: 'noWorkspace' } satisfies ExtensionToWebviewMessage)
       void this.postSelectionSummary()
       this.postUiState()
@@ -112,6 +115,7 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
         includeFiles: this.state.getIncludeFiles(),
         expanded: this.state.getExpandedPaths(),
       } satisfies ExtensionToWebviewMessage)
+      void this.refreshFileIndex(currentToken)
       void this.postSelectionSummary()
       this.postUiState()
       if (currentToken !== this.refreshToken) {
@@ -126,6 +130,16 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
         this.postUiState()
       }
     }
+  }
+
+  private postFileIndex(files: Map<string, FileEntry>) {
+    if (!this.view) {
+      return
+    }
+    this.view.webview.postMessage({
+      type: 'fileIndex',
+      files: [...files.values()].map(entry => entry.path),
+    } satisfies ExtensionToWebviewMessage)
   }
 
   private loadMetaPrompts() {
@@ -437,6 +451,23 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
       children: prepared,
     } satisfies ExtensionToWebviewMessage)
     void this.postSelectionSummary()
+  }
+
+  private async refreshFileIndex(expectedToken: number) {
+    try {
+      const files = await collectWorkspaceFiles(this.state.respectGitignore)
+      if (!this.view || expectedToken !== this.refreshToken) {
+        return
+      }
+      this.state.setFiles(files)
+      this.postFileIndex(files)
+    } catch {
+      if (expectedToken === this.refreshToken) {
+        const empty = new Map<string, FileEntry>()
+        this.state.setFiles(empty)
+        this.postFileIndex(empty)
+      }
+    }
   }
 
   private async loadGitignorePatterns(directory: vscode.Uri, relativeDir: string) {

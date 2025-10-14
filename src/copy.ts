@@ -144,8 +144,11 @@ function buildFileTreeText(paths: readonly string[]) {
   }
   const lines: string[] = []
   const nodes = sortNodes([...root.values()])
-  for (const node of nodes) {
-    traverseTree(node, 0, lines)
+  if (nodes.length) {
+    lines.push('.')
+    nodes.forEach((node, index) => {
+      traverseTree(node, '', index === nodes.length - 1, lines)
+    })
   }
   return lines.join('\n')
 }
@@ -179,15 +182,16 @@ function addPath(container: Map<string, FileTreeNode>, segments: readonly string
   }
 }
 
-function traverseTree(node: FileTreeNode, depth: number, lines: string[]) {
-  const indent = depth > 0 ? '  '.repeat(depth) : ''
+function traverseTree(node: FileTreeNode, prefix: string, isLast: boolean, lines: string[]) {
+  const connector = isLast ? '└── ' : '├── '
   const suffix = node.type === 'folder' ? '/' : ''
-  lines.push(`${indent}${node.name}${suffix}`)
+  lines.push(`${prefix}${connector}${node.name}${suffix}`)
   if (node.type === 'folder' && node.children && node.children.size) {
     const children = sortNodes([...node.children.values()])
-    for (const child of children) {
-      traverseTree(child, depth + 1, lines)
-    }
+    const nextPrefix = prefix + (isLast ? '    ' : '│   ')
+    children.forEach((child, index) => {
+      traverseTree(child, nextPrefix, index === children.length - 1, lines)
+    })
   }
 }
 

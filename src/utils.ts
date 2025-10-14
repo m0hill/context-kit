@@ -8,9 +8,9 @@ export function inferLanguage(filePath: string) {
   }
   const map: Record<string, string> = {
     ts: 'typescript',
-    tsx: 'tsx',
+    tsx: 'typescriptreact',
     js: 'javascript',
-    jsx: 'jsx',
+    jsx: 'javascriptreact',
     cjs: 'javascript',
     mjs: 'javascript',
     css: 'css',
