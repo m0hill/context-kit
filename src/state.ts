@@ -1,6 +1,6 @@
-import * as vscode from 'vscode'
+import * as vscode from "vscode"
 
-import { FileEntry, MetaPrompt, WebviewNode } from './types'
+import { FileEntry, MetaPrompt, WebviewNode } from "./types"
 
 export class ContextKitState {
   private files = new Map<string, FileEntry>()
@@ -8,23 +8,27 @@ export class ContextKitState {
   private expanded = new Set<string>()
   private metaPrompts: MetaPrompt[] = []
   private selectedMetaPromptIds = new Set<string>()
-  private viewMode: 'main' | 'manage' = 'main'
+  private viewMode: "main" | "manage" = "main"
   respectGitignore = true
-  prompt = ''
+  prompt = ""
   includePrompt = true
   includeSavedPrompts = true
   includeFiles = true
+  private searchFilter = ""
 
-  setFiles(files: Map<string, FileEntry>) {
+  setFiles(files: Map<string, FileEntry>, options?: { pruneSelection?: boolean }) {
     this.files = files
-    this.selected = new Set([...this.selected].filter(path => this.files.has(path)))
+    if (options?.pruneSelection === false) {
+      return
+    }
+    this.selected = new Set([...this.selected].filter((path) => this.files.has(path)))
   }
 
   addFiles(entries: readonly FileEntry[]) {
     for (const e of entries) {
       this.files.set(e.path, e)
     }
-    this.selected = new Set([...this.selected].filter(p => this.files.has(p)))
+    this.selected = new Set([...this.selected].filter((p) => this.files.has(p)))
   }
 
   setRespectGitignore(value: boolean) {
@@ -47,7 +51,7 @@ export class ContextKitState {
     const available = new Set<string>()
     const visit = (items: WebviewNode[]) => {
       for (const item of items) {
-        if (item.type === 'folder') {
+        if (item.type === "folder") {
           available.add(item.path)
           if (item.children?.length) {
             visit(item.children)
@@ -59,7 +63,7 @@ export class ContextKitState {
     if (!available.size && !this.expanded.size) {
       return
     }
-    this.expanded = new Set([...this.expanded].filter(path => available.has(path)))
+    this.expanded = new Set([...this.expanded].filter((path) => available.has(path)))
   }
 
   setPrompt(value: string) {
@@ -81,15 +85,15 @@ export class ContextKitState {
   setMetaPrompts(prompts: MetaPrompt[]) {
     this.metaPrompts = prompts
     this.selectedMetaPromptIds = new Set(
-      [...this.selectedMetaPromptIds].filter(id =>
-        this.metaPrompts.some(prompt => prompt.id === id)
-      )
+      [...this.selectedMetaPromptIds].filter((id) =>
+        this.metaPrompts.some((prompt) => prompt.id === id),
+      ),
     )
   }
 
   setSelectedMetaPromptIds(ids: string[]) {
-    const valid = new Set(this.metaPrompts.map(prompt => prompt.id))
-    this.selectedMetaPromptIds = new Set(ids.filter(id => valid.has(id)))
+    const valid = new Set(this.metaPrompts.map((prompt) => prompt.id))
+    this.selectedMetaPromptIds = new Set(ids.filter((id) => valid.has(id)))
   }
 
   getSelectedMetaPromptIds() {
@@ -98,14 +102,14 @@ export class ContextKitState {
 
   getSelectedMetaPrompts() {
     const set = new Set(this.selectedMetaPromptIds)
-    return this.metaPrompts.filter(prompt => set.has(prompt.id))
+    return this.metaPrompts.filter((prompt) => set.has(prompt.id))
   }
 
   getMetaPrompts() {
     return this.metaPrompts
   }
 
-  setViewMode(mode: 'main' | 'manage') {
+  setViewMode(mode: "main" | "manage") {
     this.viewMode = mode
   }
 
@@ -114,7 +118,7 @@ export class ContextKitState {
   }
 
   setSelection(paths: string[]) {
-    this.selected = new Set(paths.filter(path => this.files.has(path)))
+    this.selected = new Set(paths.filter((path) => this.files.has(path)))
   }
 
   clearSelection() {
@@ -123,7 +127,7 @@ export class ContextKitState {
 
   getSelectionEntries(): FileEntry[] {
     return [...this.selected]
-      .map(path => this.files.get(path))
+      .map((path) => this.files.get(path))
       .filter((entry): entry is FileEntry => Boolean(entry))
   }
 
@@ -141,6 +145,14 @@ export class ContextKitState {
 
   getIncludeFiles() {
     return this.includeFiles
+  }
+
+  setSearchFilter(value: string) {
+    this.searchFilter = value
+  }
+
+  getSearchFilter() {
+    return this.searchFilter
   }
 
   getFileEntry(path: string) {
@@ -162,10 +174,10 @@ export class ContextKitState {
         const entry = entries[i]
         try {
           const size =
-            typeof entry.size === 'number'
+            typeof entry.size === "number"
               ? entry.size
               : (await vscode.workspace.fs.stat(entry.uri)).size
-          if (typeof size === 'number') {
+          if (typeof size === "number") {
             entry.size = size
             totalBytes += size
           }

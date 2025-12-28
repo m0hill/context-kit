@@ -1,40 +1,71 @@
 {
   "name": "context-kit",
   "displayName": "Context Kit",
-  "description": "Efficiently manage and copy file context for AI assistants with an intuitive tree view",
   "version": "1.0.1",
-  "publisher": "MohilGarg",
+  "description": "Efficiently manage and copy file context for AI assistants with an intuitive tree view",
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "assistant",
+    "clipboard",
+    "context",
+    "copilot",
+    "files",
+    "llm",
+    "productivity",
+    "tree"
+  ],
+  "bugs": {
+    "url": "https://github.com/m0hill/context-kit/issues"
+  },
+  "license": "MIT",
   "author": {
     "name": "Mohil"
   },
-  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/m0hill/context-kit"
   },
-  "bugs": {
-    "url": "https://github.com/m0hill/context-kit/issues"
-  },
-  "icon": "media/icon.png",
-  "keywords": [
-    "ai",
-    "context",
-    "clipboard",
-    "llm",
-    "assistant",
-    "copilot",
-    "files",
-    "tree",
-    "productivity"
-  ],
-  "engines": {
-    "vscode": "^1.104.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [],
+  "publisher": "MohilGarg",
   "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "compile": "pnpm run check-types && pnpm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "pnpm dlx oxlint@latest",
+    "format": "oxfmt",
+    "test": "vscode-test",
+    "vsix": "pnpm run package && pnpm exec vsce package --no-dependencies --out dist/context-kit.vsix",
+    "ext:uninstall": "code --uninstall-extension MohilGarg.context-kit",
+    "ext:install": "pnpm run vsix && code --install-extension dist/context-kit.vsix --force",
+    "ext:reinstall": "pnpm run vsix && pnpm run ext:uninstall || true && pnpm run ext:install"
+  },
+  "dependencies": {
+    "ignore": "^7.0.5"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.104.0",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.25.10",
+    "npm-run-all": "^4.1.5",
+    "oxfmt": "^0.20.0",
+    "typescript": "^5.9.3"
+  },
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -67,36 +98,9 @@
       }
     ]
   },
-  "scripts": {
-    "vscode:prepublish": "pnpm run package",
-    "compile": "pnpm run check-types && pnpm run lint && node esbuild.js",
-    "watch": "npm-run-all -p watch:*",
-    "watch:esbuild": "node esbuild.js --watch",
-    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
-    "check-types": "tsc --noEmit",
-    "lint": "eslint src",
-    "format": "biome check --write .",
-    "test": "vscode-test"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.2.5",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
-    "@types/vscode": "^1.104.0",
-    "@typescript-eslint/eslint-plugin": "^8.45.0",
-    "@typescript-eslint/parser": "^8.45.0",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2",
-    "esbuild": "^0.25.10",
-    "eslint": "^9.36.0",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "ignore": "^7.0.5"
+  "activationEvents": [],
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.104.0"
   }
 }

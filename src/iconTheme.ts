@@ -1,9 +1,9 @@
-import { Buffer } from 'buffer'
-import * as vscode from 'vscode'
+import { Buffer } from "buffer"
+import * as vscode from "vscode"
 
-import { inferLanguage, splitPathSegments, toPosix } from './utils'
+import { inferLanguage, splitPathSegments, toPosix } from "./utils"
 
-type NodeKind = 'file' | 'folder'
+type NodeKind = "file" | "folder"
 
 interface IconDefinition {
   readonly iconPath?: string
@@ -53,8 +53,8 @@ export class IconThemeManager {
   private themeExtensionUri?: vscode.Uri
   private baseIconUris = new Map<string, vscode.Uri>()
   private lightIconUris = new Map<string, vscode.Uri>()
-  private fallbackFileCodicon = 'codicon-file'
-  private fallbackFolderCodicon = 'codicon-folder'
+  private fallbackFileCodicon = "codicon-file"
+  private fallbackFolderCodicon = "codicon-folder"
 
   async ensureLoaded() {
     if (this.loaded) {
@@ -92,23 +92,23 @@ export class IconThemeManager {
   getIconVariants(path: string, kind: NodeKind, options: ResolveOptions = {}): IconThemeNodeIcon {
     if (!this.loaded || !this.baseDoc) {
       const fallback = this.defaultIcon(kind)
-      return { collapsed: fallback, expanded: kind === 'folder' ? fallback : undefined }
+      return { collapsed: fallback, expanded: kind === "folder" ? fallback : undefined }
     }
     const name = extractName(path)
     if (!name) {
       const fallback = this.defaultIcon(kind)
-      return { collapsed: fallback, expanded: kind === 'folder' ? fallback : undefined }
+      return { collapsed: fallback, expanded: kind === "folder" ? fallback : undefined }
     }
-    if (kind === 'file') {
+    if (kind === "file") {
       return { collapsed: this.resolveVariant(kind, name, options) }
     }
-    const collapsed = this.resolveVariant('folder', name, { ...options, expanded: false })
-    const expanded = this.resolveVariant('folder', name, { ...options, expanded: true })
+    const collapsed = this.resolveVariant("folder", name, { ...options, expanded: false })
+    const expanded = this.resolveVariant("folder", name, { ...options, expanded: true })
     return { collapsed, expanded }
   }
 
   private defaultIcon(kind: NodeKind): ResolvedIcon {
-    return { codicon: kind === 'folder' ? this.fallbackFolderCodicon : this.fallbackFileCodicon }
+    return { codicon: kind === "folder" ? this.fallbackFolderCodicon : this.fallbackFileCodicon }
   }
 
   private resolveVariant(kind: NodeKind, name: string, options: ResolveOptions): ResolvedIcon {
@@ -132,7 +132,7 @@ export class IconThemeManager {
       }
       const { contribution, extension } = theme
       const themeUri = vscode.Uri.joinPath(extension.extensionUri, contribution.path)
-      const baseDir = vscode.Uri.joinPath(themeUri, '..')
+      const baseDir = vscode.Uri.joinPath(themeUri, "..")
       const content = await vscode.workspace.fs.readFile(themeUri)
       const baseDoc = parseTheme(content)
       if (!baseDoc) {
@@ -150,7 +150,7 @@ export class IconThemeManager {
         : new Map()
       this.loaded = true
     } catch (error) {
-      console.error('[ContextKit] Failed to load icon theme', error)
+      console.error("[ContextKit] Failed to load icon theme", error)
       this.reset()
       this.loaded = true
     }
@@ -163,7 +163,7 @@ export class IconThemeManager {
       }
     | undefined
   > {
-    const themeId = vscode.workspace.getConfiguration('workbench').get<string>('iconTheme')
+    const themeId = vscode.workspace.getConfiguration("workbench").get<string>("iconTheme")
     if (!themeId) {
       return undefined
     }
@@ -186,12 +186,12 @@ export class IconThemeManager {
     doc: IconThemeDocument | undefined,
     kind: NodeKind,
     name: string,
-    options: ResolveOptions
+    options: ResolveOptions,
   ): string | undefined {
     if (!doc) {
       return undefined
     }
-    if (kind === 'file') {
+    if (kind === "file") {
       return this.resolveFileIconId(doc, name)
     }
     return this.resolveFolderIconId(doc, name, options)
@@ -231,7 +231,7 @@ export class IconThemeManager {
   private resolveFolderIconId(
     doc: IconThemeDocument,
     name: string,
-    options: ResolveOptions
+    options: ResolveOptions,
   ): string | undefined {
     const lower = name.toLowerCase()
     const expanded = Boolean(options.expanded)
@@ -259,7 +259,7 @@ export class IconThemeManager {
   private resolveIconUri(
     id: string | undefined,
     primary: Map<string, vscode.Uri>,
-    fallback?: Map<string, vscode.Uri>
+    fallback?: Map<string, vscode.Uri>,
   ): vscode.Uri | undefined {
     if (!id) {
       return undefined
@@ -270,18 +270,18 @@ export class IconThemeManager {
 
 function parseTheme(buffer: Uint8Array): IconThemeDocument | undefined {
   try {
-    const text = Buffer.from(buffer).toString('utf8')
+    const text = Buffer.from(buffer).toString("utf8")
     const data = JSON.parse(text)
     return data as IconThemeDocument
   } catch (error) {
-    console.error('[ContextKit] Failed to parse icon theme', error)
+    console.error("[ContextKit] Failed to parse icon theme", error)
     return undefined
   }
 }
 
 function buildDefinitionMap(
   baseDir: vscode.Uri,
-  definitions?: Record<string, IconDefinition | undefined>
+  definitions?: Record<string, IconDefinition | undefined>,
 ) {
   const map = new Map<string, vscode.Uri>()
   if (!definitions) {
@@ -305,7 +305,7 @@ function resolveIconUri(baseDir: vscode.Uri, relativePath: string) {
 
 function mergeDocumentOverrides(
   base: IconThemeDocument,
-  overrides: IconThemeDocument
+  overrides: IconThemeDocument,
 ): IconThemeDocument {
   const { light: _baseLight, ...baseRest } = base
   const { light: _overrideLight, ...overrideRest } = overrides
@@ -322,16 +322,16 @@ function mergeDocumentOverrides(
 function extractName(path: string) {
   const normalized = path.trim()
   if (!normalized) {
-    return ''
+    return ""
   }
-  const idx = normalized.lastIndexOf('/')
+  const idx = normalized.lastIndexOf("/")
   return idx >= 0 ? normalized.slice(idx + 1) : normalized
 }
 
 function findByExtension(
   name: string,
   table: Record<string, string | undefined>,
-  caseSensitive: boolean
+  caseSensitive: boolean,
 ) {
   const loweredTable: Record<string, string | undefined> = {}
   if (!caseSensitive) {
@@ -341,12 +341,12 @@ function findByExtension(
   } else {
     Object.assign(loweredTable, table)
   }
-  const parts = name.split('.')
+  const parts = name.split(".")
   if (parts.length <= 1) {
     return undefined
   }
   for (let i = 1; i < parts.length; i += 1) {
-    const ext = parts.slice(i).join('.')
+    const ext = parts.slice(i).join(".")
     const key = caseSensitive ? ext : ext.toLowerCase()
     if (loweredTable[key]) {
       return loweredTable[key]

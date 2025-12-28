@@ -1,21 +1,21 @@
-import * as vscode from 'vscode'
+import * as vscode from "vscode"
 
-import { MetaPrompt } from './types'
+import { MetaPrompt } from "./types"
 
-const STORAGE_KEY = 'contextKit.metaPrompts'
+const STORAGE_KEY = "contextKit.metaPrompts"
 
 function sanitize(prompts: unknown): MetaPrompt[] {
   if (!Array.isArray(prompts)) {
     return []
   }
   return prompts
-    .map(item => {
-      if (!item || typeof item !== 'object') {
+    .map((item) => {
+      if (!item || typeof item !== "object") {
         return null
       }
-      const id = typeof item.id === 'string' ? item.id : undefined
-      const name = typeof item.name === 'string' ? item.name : undefined
-      const body = typeof item.body === 'string' ? item.body : undefined
+      const id = typeof item.id === "string" ? item.id : undefined
+      const name = typeof item.name === "string" ? item.name : undefined
+      const body = typeof item.body === "string" ? item.body : undefined
       if (!id || !name || !body) {
         return null
       }
@@ -34,7 +34,7 @@ async function saveMetaPrompts(context: vscode.ExtensionContext, prompts: MetaPr
 }
 
 function generateId() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID()
   }
   return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`
@@ -56,18 +56,18 @@ export async function updateMetaPrompt(
   context: vscode.ExtensionContext,
   id: string,
   name: string,
-  body: string
+  body: string,
 ) {
   const prompts = loadMetaPrompts(context)
-  const updated = prompts.map(prompt =>
-    prompt.id === id ? { ...prompt, name: name.trim(), body: body.trim() } : prompt
+  const updated = prompts.map((prompt) =>
+    prompt.id === id ? { ...prompt, name: name.trim(), body: body.trim() } : prompt,
   )
   await saveMetaPrompts(context, updated)
   return updated
 }
 
 export async function deleteMetaPrompt(context: vscode.ExtensionContext, id: string) {
-  const prompts = loadMetaPrompts(context).filter(prompt => prompt.id !== id)
+  const prompts = loadMetaPrompts(context).filter((prompt) => prompt.id !== id)
   await saveMetaPrompts(context, prompts)
   return prompts
 }

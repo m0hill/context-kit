@@ -1,12 +1,12 @@
-import { existsSync, readFileSync } from 'fs'
-import * as vscode from 'vscode'
+import { existsSync, readFileSync } from "fs"
+import * as vscode from "vscode"
 
-import { getNonce } from '../utils'
+import { getNonce } from "../utils"
 
-const WEBVIEW_DIST_PATH = ['dist', 'webview'] as const
-const TEMPLATE_NAME = 'index.html'
-const SCRIPT_NAME = 'main.js'
-const STYLE_NAME = 'main.css'
+const WEBVIEW_DIST_PATH = ["dist", "webview"] as const
+const TEMPLATE_NAME = "index.html"
+const SCRIPT_NAME = "main.js"
+const STYLE_NAME = "main.css"
 
 function getAssetUri(context: vscode.ExtensionContext, fileName: string) {
   return vscode.Uri.joinPath(context.extensionUri, ...WEBVIEW_DIST_PATH, fileName)
@@ -47,12 +47,12 @@ export function getWebviewHtml(context: vscode.ExtensionContext, webview: vscode
     return renderMissingHtml('Webview bundle is incomplete. Run "pnpm run compile" to rebuild it.')
   }
 
-  const template = readFileSync(templateUri.fsPath, 'utf8')
+  const template = readFileSync(templateUri.fsPath, "utf8")
   const nonce = getNonce()
   let html = template
-  html = replaceAll(html, '{{cspSource}}', webview.cspSource)
-  html = replaceAll(html, '{{nonce}}', nonce)
-  html = replaceAll(html, '{{scriptUri}}', webview.asWebviewUri(scriptUri).toString())
-  html = replaceAll(html, '{{styleUri}}', webview.asWebviewUri(styleUri).toString())
+  html = replaceAll(html, "{{cspSource}}", webview.cspSource)
+  html = replaceAll(html, "{{nonce}}", nonce)
+  html = replaceAll(html, "{{scriptUri}}", webview.asWebviewUri(scriptUri).toString())
+  html = replaceAll(html, "{{styleUri}}", webview.asWebviewUri(styleUri).toString())
   return html
 }

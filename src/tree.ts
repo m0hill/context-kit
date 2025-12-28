@@ -1,9 +1,9 @@
-import { Buffer } from 'buffer'
-import ignore from 'ignore'
-import * as vscode from 'vscode'
+import { Buffer } from "buffer"
+import ignore from "ignore"
+import * as vscode from "vscode"
 
-import { FileEntry, TreeData, WebviewNode } from './types'
-import { getWorkspaceLabel, toPosix } from './utils'
+import { FileEntry, TreeData, WebviewNode } from "./types"
+import { getWorkspaceLabel, toPosix } from "./utils"
 
 const ENTRY_CONCURRENCY = 16
 
@@ -29,7 +29,7 @@ export async function loadWorkspaceTree(respectGitignore: boolean): Promise<Tree
       directory: folder.uri,
       label,
       displayPath: label,
-      relative: '',
+      relative: "",
       respectGitignore,
       patterns: [],
       files,
@@ -43,7 +43,7 @@ export async function loadWorkspaceTree(respectGitignore: boolean): Promise<Tree
 }
 
 export async function collectWorkspaceFiles(
-  respectGitignore: boolean
+  respectGitignore: boolean,
 ): Promise<Map<string, FileEntry>> {
   const folders = vscode.workspace.workspaceFolders ?? []
   const files = new Map<string, FileEntry>()
@@ -54,7 +54,7 @@ export async function collectWorkspaceFiles(
       directory: folder.uri,
       label,
       displayPath: label,
-      relative: '',
+      relative: "",
       respectGitignore,
       patterns: [],
       files,
@@ -78,7 +78,7 @@ async function buildDirectory(params: DirectoryTraversalParams): Promise<Webview
   let patterns = respectGitignore ? params.patterns : []
   if (respectGitignore) {
     const hasGitignore = entries.some(
-      ([name, type]) => name === '.gitignore' && (type & vscode.FileType.File) !== 0
+      ([name, type]) => name === ".gitignore" && (type & vscode.FileType.File) !== 0,
     )
     if (hasGitignore) {
       const scoped = await loadGitignorePatterns(directory, relative, gitignoreCache)
@@ -90,7 +90,7 @@ async function buildDirectory(params: DirectoryTraversalParams): Promise<Webview
   const matcher = respectGitignore && patterns.length ? ignore().add(patterns) : undefined
 
   const filtered = entries
-    .filter(([name]) => name !== '.git')
+    .filter(([name]) => name !== ".git")
     .sort((a, b) => {
       const aIsDir = (a[1] & vscode.FileType.Directory) !== 0
       const bIsDir = (b[1] & vscode.FileType.Directory) !== 0
@@ -147,7 +147,7 @@ async function buildDirectory(params: DirectoryTraversalParams): Promise<Webview
   return {
     label,
     path: displayPath,
-    type: 'folder',
+    type: "folder",
     ignored: false,
     children: childNodes.filter((node): node is WebviewNode => Boolean(node)),
   }
@@ -166,7 +166,7 @@ async function traverseDirectory(params: DirectoryTraversalParams): Promise<void
   let patterns = respectGitignore ? params.patterns : []
   if (respectGitignore) {
     const hasGitignore = entries.some(
-      ([name, type]) => name === '.gitignore' && (type & vscode.FileType.File) !== 0
+      ([name, type]) => name === ".gitignore" && (type & vscode.FileType.File) !== 0,
     )
     if (hasGitignore) {
       const scoped = await loadGitignorePatterns(directory, relative, gitignoreCache)
@@ -178,7 +178,7 @@ async function traverseDirectory(params: DirectoryTraversalParams): Promise<void
   const matcher = respectGitignore && patterns.length ? ignore().add(patterns) : undefined
 
   const filtered = entries
-    .filter(([name]) => name !== '.git')
+    .filter(([name]) => name !== ".git")
     .sort((a, b) => {
       const aIsDir = (a[1] & vscode.FileType.Directory) !== 0
       const bIsDir = (b[1] & vscode.FileType.Directory) !== 0
@@ -232,12 +232,12 @@ function createFileNode(
   fileUri: vscode.Uri,
   displayPath: string,
   name: string,
-  files: Map<string, FileEntry>
+  files: Map<string, FileEntry>,
 ) {
   const node: WebviewNode = {
     label: name,
     path: displayPath,
-    type: 'file',
+    type: "file",
   }
   files.set(displayPath, {
     path: displayPath,
@@ -249,27 +249,27 @@ function createFileNode(
 async function loadGitignorePatterns(
   directory: vscode.Uri,
   relativeDir: string,
-  cache: Map<string, readonly string[]>
+  cache: Map<string, readonly string[]>,
 ) {
   const key = directory.toString()
   if (cache.has(key)) {
     return cache.get(key) ?? []
   }
-  const gitignoreUri = vscode.Uri.joinPath(directory, '.gitignore')
+  const gitignoreUri = vscode.Uri.joinPath(directory, ".gitignore")
   try {
     const buffer = await vscode.workspace.fs.readFile(gitignoreUri)
-    const lines = Buffer.from(buffer).toString('utf8').split(/\r?\n/)
+    const lines = Buffer.from(buffer).toString("utf8").split(/\r?\n/)
     const scoped: string[] = []
-    const prefix = relativeDir ? `${relativeDir}/` : ''
+    const prefix = relativeDir ? `${relativeDir}/` : ""
     for (const entry of lines) {
       const trimmed = entry.trim()
-      if (!trimmed || trimmed.startsWith('#')) {
+      if (!trimmed || trimmed.startsWith("#")) {
         continue
       }
-      const isNegated = trimmed.startsWith('!')
+      const isNegated = trimmed.startsWith("!")
       const body = isNegated ? trimmed.slice(1) : trimmed
-      const cleaned = body.replace(/^\//, '')
-      const scopedPattern = `${isNegated ? '!' : ''}${toPosix(`${prefix}${cleaned}`)}`
+      const cleaned = body.replace(/^\//, "")
+      const scopedPattern = `${isNegated ? "!" : ""}${toPosix(`${prefix}${cleaned}`)}`
       scoped.push(scopedPattern)
     }
     cache.set(key, scoped)
@@ -283,7 +283,7 @@ async function loadGitignorePatterns(
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
   limit: number,
-  mapper: (item: T, index: number) => Promise<R | undefined>
+  mapper: (item: T, index: number) => Promise<R | undefined>,
 ) {
   const results: (R | undefined)[] = new Array(items.length)
   let index = 0

@@ -75,6 +75,7 @@ Your custom instructions here
 ## Development
 
 ### Code Quality
+
 This project uses [Biome](https://biomejs.dev/) for code formatting and ESLint for linting.
 
 ```bash
@@ -83,6 +84,7 @@ pnpm run lint      # Lint code with ESLint
 ```
 
 ### Building
+
 ```bash
 pnpm run compile   # Build extension and webview
 pnpm run watch     # Watch mode for development

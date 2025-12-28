@@ -100,6 +100,11 @@ button.secondary {
   color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground));
 }
 
+.button-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .view {
   display: flex;
   flex-direction: column;

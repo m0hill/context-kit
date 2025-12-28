@@ -1,12 +1,12 @@
-import { Buffer } from 'buffer'
-import ignore from 'ignore'
-import * as vscode from 'vscode'
+import { Buffer } from "buffer"
+import ignore from "ignore"
+import * as vscode from "vscode"
 
-import { copySelection } from './copy'
-import { IconThemeManager, IconThemeNodeIcon } from './iconTheme'
-import { addMetaPrompt, deleteMetaPrompt, loadMetaPrompts, updateMetaPrompt } from './metaPrompts'
-import { ContextKitState } from './state'
-import { collectWorkspaceFiles } from './tree'
+import { copySelection } from "./copy"
+import { IconThemeManager, IconThemeNodeIcon } from "./iconTheme"
+import { addMetaPrompt, deleteMetaPrompt, loadMetaPrompts, updateMetaPrompt } from "./metaPrompts"
+import { ContextKitState } from "./state"
+import { collectWorkspaceFiles } from "./tree"
 import {
   ExtensionToWebviewMessage,
   FileEntry,
@@ -16,9 +16,9 @@ import {
   WebviewNodeIcon,
   WebviewNodeIconVariant,
   WebviewToExtensionMessage,
-} from './types'
-import { getWorkspaceLabel, toPosix } from './utils'
-import { getWebviewHtml } from './webview/html'
+} from "./types"
+import { getWorkspaceLabel, toPosix } from "./utils"
+import { getWebviewHtml } from "./webview/html"
 
 export class ContextKitViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView
@@ -33,18 +33,18 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly state: ContextKitState
+    private readonly state: ContextKitState,
   ) {
     context.subscriptions.push(
-      vscode.workspace.onDidChangeConfiguration(event => {
-        if (event.affectsConfiguration('workbench.iconTheme')) {
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration("workbench.iconTheme")) {
           void this.iconManager.reload().then(() => {
             if (this.ready) {
               void this.refreshTree()
             }
           })
         }
-      })
+      }),
     )
   }
 
@@ -73,14 +73,14 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
       return
     }
     const currentToken = ++this.refreshToken
-    this.view.webview.postMessage({ type: 'loading' } satisfies ExtensionToWebviewMessage)
+    this.view.webview.postMessage({ type: "loading" } satisfies ExtensionToWebviewMessage)
     const folders = vscode.workspace.workspaceFolders
     if (!folders || !folders.length) {
       this.state.setFiles(new Map())
       this.state.clearSelection()
       this.state.clearExpanded()
       this.postFileIndex(new Map())
-      this.view.webview.postMessage({ type: 'noWorkspace' } satisfies ExtensionToWebviewMessage)
+      this.view.webview.postMessage({ type: "noWorkspace" } satisfies ExtensionToWebviewMessage)
       void this.postSelectionSummary()
       this.postUiState()
       return
@@ -90,30 +90,32 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
       this.updateLocalResourceRoots()
       this.dirInfo.clear()
       this.gitignoreCache.clear()
-      this.state.setFiles(new Map())
+      this.state.setFiles(new Map(), { pruneSelection: false })
       const rootNodes: WebviewNode[] = []
       for (const folder of folders) {
         const label = getWorkspaceLabel(folder.uri)
         rootNodes.push({
           label,
           path: label,
-          type: 'folder',
+          type: "folder",
           ignored: false,
           hasChildren: true,
         })
-        this.dirInfo.set(label, { uri: folder.uri, root: folder.uri, relative: '', patterns: [] })
+        this.dirInfo.set(label, { uri: folder.uri, root: folder.uri, relative: "", patterns: [] })
       }
       const nodes = this.prepareNodesForWebview(rootNodes)
+      const selectionPaths = this.state.getSelectionEntries().map((e) => e.path)
       this.view.webview.postMessage({
-        type: 'treeData',
+        type: "treeData",
         nodes,
-        selection: this.state.getSelectionEntries().map(e => e.path),
+        selection: selectionPaths,
         respectGitignore: this.state.respectGitignore,
         prompt: this.state.getPrompt(),
         includePrompt: this.state.getIncludePrompt(),
         includeSavedPrompts: this.state.getIncludeSavedPrompts(),
         includeFiles: this.state.getIncludeFiles(),
         expanded: this.state.getExpandedPaths(),
+        searchFilter: this.state.getSearchFilter(),
       } satisfies ExtensionToWebviewMessage)
       void this.refreshFileIndex(currentToken)
       void this.postSelectionSummary()
@@ -124,8 +126,8 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
     } catch {
       if (currentToken === this.refreshToken) {
         this.view.webview.postMessage({
-          type: 'warning',
-          text: 'Failed to load workspace files.',
+          type: "warning",
+          text: "Failed to load workspace files.",
         } satisfies ExtensionToWebviewMessage)
         this.postUiState()
       }
@@ -137,8 +139,8 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
       return
     }
     this.view.webview.postMessage({
-      type: 'fileIndex',
-      files: [...files.values()].map(entry => entry.path),
+      type: "fileIndex",
+      files: [...files.values()].map((entry) => entry.path),
     } satisfies ExtensionToWebviewMessage)
   }
 
@@ -149,57 +151,60 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
 
   private async handleMessage(message: WebviewToExtensionMessage) {
     switch (message?.type) {
-      case 'ready':
+      case "ready":
         this.ready = true
         this.loadMetaPrompts()
         this.postUiState()
         await this.refreshTree()
         break
-      case 'toggleRespectGitignore':
+      case "toggleRespectGitignore":
         this.state.setRespectGitignore(Boolean(message.value))
         this.state.clearSelection()
         this.state.clearExpanded()
         await this.refreshTree()
         break
-      case 'selectionChanged':
+      case "selectionChanged":
         this.state.setSelection(message.paths)
         void this.postSelectionSummary()
         break
-      case 'expandedChanged':
+      case "expandedChanged":
         this.state.setExpanded(message.paths)
         break
-      case 'promptChanged':
+      case "promptChanged":
         this.state.setPrompt(message.value)
         break
-      case 'includePromptChanged':
+      case "includePromptChanged":
         this.state.setIncludePrompt(Boolean(message.value))
         break
-      case 'includeSavedPromptsChanged':
+      case "includeSavedPromptsChanged":
         this.state.setIncludeSavedPrompts(Boolean(message.value))
         break
-      case 'includeFilesChanged':
+      case "includeFilesChanged":
         this.state.setIncludeFiles(Boolean(message.value))
         break
-      case 'setSelectedMetaPrompts':
+      case "searchFilterChanged":
+        this.state.setSearchFilter(message.value)
+        break
+      case "setSelectedMetaPrompts":
         this.state.setSelectedMetaPromptIds(message.ids)
         this.postUiState()
         break
-      case 'setViewMode':
+      case "setViewMode":
         this.state.setViewMode(message.mode)
         this.postUiState()
         break
-      case 'createMetaPrompt':
+      case "createMetaPrompt":
         await this.persistMetaPrompts(() => addMetaPrompt(this.context, message.name, message.body))
         break
-      case 'updateMetaPrompt':
+      case "updateMetaPrompt":
         await this.persistMetaPrompts(() =>
-          updateMetaPrompt(this.context, message.id, message.name, message.body)
+          updateMetaPrompt(this.context, message.id, message.name, message.body),
         )
         break
-      case 'deleteMetaPrompt':
+      case "deleteMetaPrompt":
         await this.persistMetaPrompts(() => deleteMetaPrompt(this.context, message.id))
         break
-      case 'requestCopy':
+      case "requestCopy":
         this.state.setPrompt(message.prompt)
         if (message.includePrompt !== undefined) {
           this.state.setIncludePrompt(Boolean(message.includePrompt))
@@ -230,14 +235,17 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
               : this.state.getIncludeFiles(),
         })
         break
-      case 'requestRefresh':
+      case "requestRefresh":
         await this.refreshTree()
         break
-      case 'openFile':
+      case "openFile":
         await this.openFile(message.path)
         break
-      case 'requestChildren':
+      case "requestChildren":
         await this.handleRequestChildren(message.path)
+        break
+      case "resetAll":
+        await this.handleResetAll()
         break
     }
   }
@@ -252,15 +260,16 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
     this.state.pruneExpandedWithNodes(data.nodes)
     const nodes = this.prepareNodesForWebview(data.nodes)
     this.view.webview.postMessage({
-      type: 'treeData',
+      type: "treeData",
       nodes,
-      selection: this.state.getSelectionEntries().map(entry => entry.path),
+      selection: this.state.getSelectionEntries().map((entry) => entry.path),
       respectGitignore: this.state.respectGitignore,
       prompt: this.state.getPrompt(),
       includePrompt: this.state.getIncludePrompt(),
       includeSavedPrompts: this.state.getIncludeSavedPrompts(),
       includeFiles: this.state.getIncludeFiles(),
       expanded: this.state.getExpandedPaths(),
+      searchFilter: this.state.getSearchFilter(),
     } satisfies ExtensionToWebviewMessage)
     void this.postSelectionSummary()
   }
@@ -271,7 +280,7 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
     }
     const summary = await this.state.getSelectionSummary()
     this.view.webview.postMessage({
-      type: 'selectionSummary',
+      type: "selectionSummary",
       summary,
     } satisfies ExtensionToWebviewMessage)
   }
@@ -300,14 +309,14 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
     if (!webview) {
       return nodes
     }
-    return nodes.map(node => this.prepareNode(webview, node))
+    return nodes.map((node) => this.prepareNode(webview, node))
   }
 
   private prepareNode(webview: vscode.Webview, node: WebviewNode): WebviewNode {
-    const isRoot = !node.path.includes('/')
+    const isRoot = !node.path.includes("/")
     const variants = this.iconManager.getIconVariants(node.path, node.type, { isRoot })
     const icon = serializeIconVariants(webview, variants)
-    const children = node.children?.map(child => this.prepareNode(webview, child))
+    const children = node.children?.map((child) => this.prepareNode(webview, child))
     return {
       ...node,
       icon,
@@ -320,13 +329,14 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
       return
     }
     this.view.webview.postMessage({
-      type: 'uiState',
+      type: "uiState",
       prompt: this.state.getPrompt(),
       includePrompt: this.state.getIncludePrompt(),
       includeSavedPrompts: this.state.getIncludeSavedPrompts(),
       includeFiles: this.state.getIncludeFiles(),
       respectGitignore: this.state.respectGitignore,
       expanded: this.state.getExpandedPaths(),
+      searchFilter: this.state.getSearchFilter(),
       metaPrompts: this.state.getMetaPrompts(),
       selectedMetaPromptIds: this.state.getSelectedMetaPromptIds(),
       viewMode: this.state.getViewMode(),
@@ -362,7 +372,7 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
       entries = await vscode.workspace.fs.readDirectory(uri)
     } catch {
       this.view.webview.postMessage({
-        type: 'childrenLoaded',
+        type: "childrenLoaded",
         path: displayPath,
         children: [],
       } satisfies ExtensionToWebviewMessage)
@@ -372,7 +382,7 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
     let aggPatterns = this.state.respectGitignore ? parentPatterns.slice() : []
     if (this.state.respectGitignore) {
       const hasGitignore = entries.some(
-        ([name, type]) => name === '.gitignore' && (type & vscode.FileType.File) !== 0
+        ([name, type]) => name === ".gitignore" && (type & vscode.FileType.File) !== 0,
       )
       if (hasGitignore) {
         const scoped = await this.loadGitignorePatterns(uri, relative)
@@ -385,7 +395,7 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
       this.state.respectGitignore && aggPatterns.length ? ignore().add(aggPatterns) : undefined
 
     const sorted = entries
-      .filter(([name]) => name !== '.git')
+      .filter(([name]) => name !== ".git")
       .sort((a, b) => {
         const aIsDir = (a[1] & vscode.FileType.Directory) !== 0
         const bIsDir = (b[1] & vscode.FileType.Directory) !== 0
@@ -421,7 +431,7 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
         children.push({
           label: name,
           path: childDisplayPath,
-          type: 'folder',
+          type: "folder",
           ignored: Boolean(isIgnored),
           hasChildren: true,
         })
@@ -435,18 +445,18 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
         children.push({
           label: name,
           path: childDisplayPath,
-          type: 'file',
+          type: "file",
           ignored: Boolean(isIgnored),
         })
         newFiles.push({ path: childDisplayPath, uri: childUri })
       }
     }
 
-    this.state.addFiles(newFiles.map(f => ({ path: f.path, uri: f.uri })))
+    this.state.addFiles(newFiles.map((f) => ({ path: f.path, uri: f.uri })))
 
-    const prepared = children.map(n => this.prepareNode(this.view!.webview, n))
+    const prepared = children.map((n) => this.prepareNode(this.view!.webview, n))
     this.view.webview.postMessage({
-      type: 'childrenLoaded',
+      type: "childrenLoaded",
       path: displayPath,
       children: prepared,
     } satisfies ExtensionToWebviewMessage)
@@ -470,26 +480,56 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  private async handleResetAll() {
+    this.state.clearSelection()
+    this.state.clearExpanded()
+    this.state.setPrompt("")
+    this.state.setSearchFilter("")
+    this.state.setIncludePrompt(true)
+    this.state.setIncludeSavedPrompts(true)
+    this.state.setIncludeFiles(true)
+    this.state.setSelectedMetaPromptIds([])
+    this.state.setViewMode("main")
+
+    if (this.view) {
+      this.view.webview.postMessage({
+        type: "uiState",
+        prompt: "",
+        includePrompt: true,
+        includeSavedPrompts: true,
+        includeFiles: true,
+        respectGitignore: this.state.respectGitignore,
+        expanded: [],
+        searchFilter: "",
+        metaPrompts: this.state.getMetaPrompts(),
+        selectedMetaPromptIds: [],
+        viewMode: "main",
+      } satisfies ExtensionToWebviewMessage)
+    }
+
+    await this.refreshTree()
+  }
+
   private async loadGitignorePatterns(directory: vscode.Uri, relativeDir: string) {
     const key = directory.toString()
     if (this.gitignoreCache.has(key)) {
       return this.gitignoreCache.get(key) ?? []
     }
-    const gitignoreUri = vscode.Uri.joinPath(directory, '.gitignore')
+    const gitignoreUri = vscode.Uri.joinPath(directory, ".gitignore")
     try {
       const buffer = await vscode.workspace.fs.readFile(gitignoreUri)
-      const lines = Buffer.from(buffer).toString('utf8').split(/\r?\n/)
+      const lines = Buffer.from(buffer).toString("utf8").split(/\r?\n/)
       const scoped: string[] = []
-      const prefix = relativeDir ? `${relativeDir}/` : ''
+      const prefix = relativeDir ? `${relativeDir}/` : ""
       for (const entry of lines) {
         const trimmed = entry.trim()
-        if (!trimmed || trimmed.startsWith('#')) {
+        if (!trimmed || trimmed.startsWith("#")) {
           continue
         }
-        const isNegated = trimmed.startsWith('!')
+        const isNegated = trimmed.startsWith("!")
         const body = isNegated ? trimmed.slice(1) : trimmed
-        const cleaned = body.replace(/^\//, '')
-        const scopedPattern = `${isNegated ? '!' : ''}${toPosix(`${prefix}${cleaned}`)}`
+        const cleaned = body.replace(/^\//, "")
+        const scopedPattern = `${isNegated ? "!" : ""}${toPosix(`${prefix}${cleaned}`)}`
         scoped.push(scopedPattern)
       }
       this.gitignoreCache.set(key, scoped)
@@ -502,11 +542,11 @@ export class ContextKitViewProvider implements vscode.WebviewViewProvider {
 }
 
 function isWebviewToExtensionMessage(msg: unknown): WebviewToExtensionMessage | undefined {
-  if (!msg || typeof msg !== 'object') {
+  if (!msg || typeof msg !== "object") {
     return undefined
   }
   const type = (msg as Record<string, unknown>).type
-  if (typeof type !== 'string') {
+  if (typeof type !== "string") {
     return undefined
   }
   return msg as WebviewToExtensionMessage
@@ -514,7 +554,7 @@ function isWebviewToExtensionMessage(msg: unknown): WebviewToExtensionMessage | 
 
 function serializeIconVariants(
   webview: vscode.Webview,
-  variants: IconThemeNodeIcon
+  variants: IconThemeNodeIcon,
 ): WebviewNodeIcon | undefined {
   const collapsed = serializeIconVariant(webview, variants.collapsed)
   const expanded = variants.expanded ? serializeIconVariant(webview, variants.expanded) : undefined
@@ -531,7 +571,7 @@ function serializeIconVariants(
 
 function serializeIconVariant(
   webview: vscode.Webview,
-  icon: { dark?: vscode.Uri; light?: vscode.Uri; codicon?: string }
+  icon: { dark?: vscode.Uri; light?: vscode.Uri; codicon?: string },
 ): WebviewNodeIconVariant | undefined {
   const variant: WebviewNodeIconVariant = {}
   if (icon.dark) {

@@ -1,8 +1,8 @@
-import * as vscode from 'vscode'
+import * as vscode from "vscode"
 
-import { copySelection } from './copy'
-import { ContextKitState } from './state'
-import { registerContextKitView } from './viewProvider'
+import { copySelection } from "./copy"
+import { ContextKitState } from "./state"
+import { registerContextKitView } from "./viewProvider"
 
 export function activate(context: vscode.ExtensionContext) {
   const state = new ContextKitState()
@@ -15,16 +15,16 @@ export function activate(context: vscode.ExtensionContext) {
     refreshTimer = setTimeout(() => void provider.refreshTree(), 250)
   }
   context.subscriptions.push(
-    vscode.commands.registerCommand('context-kit.openPanel', async () => {
-      await vscode.commands.executeCommand('workbench.view.extension.contextKit')
+    vscode.commands.registerCommand("context-kit.openPanel", async () => {
+      await vscode.commands.executeCommand("workbench.view.extension.contextKit")
     }),
-    vscode.commands.registerCommand('context-kit.copyContext', async () => {
+    vscode.commands.registerCommand("context-kit.copyContext", async () => {
       await copySelection(state, provider.getWebview())
     }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => scheduleRefresh()),
     vscode.workspace.onDidCreateFiles(() => scheduleRefresh()),
     vscode.workspace.onDidDeleteFiles(() => scheduleRefresh()),
-    vscode.workspace.onDidRenameFiles(() => scheduleRefresh())
+    vscode.workspace.onDidRenameFiles(() => scheduleRefresh()),
   )
 }
 

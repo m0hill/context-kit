@@ -1,10 +1,10 @@
-const esbuild = require('esbuild')
-const fs = require('fs')
-const fsp = require('fs/promises')
-const path = require('path')
+const esbuild = require("esbuild")
+const fs = require("fs")
+const fsp = require("fs/promises")
+const path = require("path")
 
-const production = process.argv.includes('--production')
-const watchMode = process.argv.includes('--watch')
+const production = process.argv.includes("--production")
+const watchMode = process.argv.includes("--watch")
 
 function createProblemMatcherPlugin(label) {
   return {
@@ -13,7 +13,7 @@ function createProblemMatcherPlugin(label) {
       build.onStart(() => {
         console.log(`[watch] ${label} build started`)
       })
-      build.onEnd(result => {
+      build.onEnd((result) => {
         result.errors.forEach(({ text, location }) => {
           console.error(`✘ [ERROR] ${text}`)
           if (location) {
@@ -26,9 +26,9 @@ function createProblemMatcherPlugin(label) {
   }
 }
 
-const WEBVIEW_HTML_SOURCE = path.resolve(__dirname, 'src/webview/ui/index.html')
-const WEBVIEW_OUT_DIR = path.resolve(__dirname, 'dist/webview')
-const WEBVIEW_HTML_OUTPUT = path.join(WEBVIEW_OUT_DIR, 'index.html')
+const WEBVIEW_HTML_SOURCE = path.resolve(__dirname, "src/webview/ui/index.html")
+const WEBVIEW_OUT_DIR = path.resolve(__dirname, "dist/webview")
+const WEBVIEW_HTML_OUTPUT = path.join(WEBVIEW_OUT_DIR, "index.html")
 
 async function copyWebviewHtml() {
   await fsp.mkdir(WEBVIEW_OUT_DIR, { recursive: true })
@@ -37,56 +37,56 @@ async function copyWebviewHtml() {
 
 function startHtmlWatcher() {
   try {
-    const watcher = fs.watch(WEBVIEW_HTML_SOURCE, async eventType => {
-      if (eventType === 'change' || eventType === 'rename') {
+    const watcher = fs.watch(WEBVIEW_HTML_SOURCE, async (eventType) => {
+      if (eventType === "change" || eventType === "rename") {
         try {
           await copyWebviewHtml()
-          console.log('[watch] webview template copied')
+          console.log("[watch] webview template copied")
         } catch (error) {
-          console.error('[watch] failed to copy webview template', error)
+          console.error("[watch] failed to copy webview template", error)
         }
       }
     })
     return watcher
   } catch (error) {
-    console.error('[watch] unable to watch webview template', error)
+    console.error("[watch] unable to watch webview template", error)
     return undefined
   }
 }
 
 function getExtensionBuild() {
   return esbuild.context({
-    entryPoints: ['src/extension.ts'],
+    entryPoints: ["src/extension.ts"],
     bundle: true,
-    format: 'cjs',
+    format: "cjs",
     minify: production,
     sourcemap: !production,
     sourcesContent: false,
-    platform: 'node',
-    outfile: 'dist/extension.js',
-    external: ['vscode'],
-    logLevel: 'silent',
-    plugins: [createProblemMatcherPlugin('extension')],
+    platform: "node",
+    outfile: "dist/extension.js",
+    external: ["vscode"],
+    logLevel: "silent",
+    plugins: [createProblemMatcherPlugin("extension")],
   })
 }
 
 function getWebviewBuild() {
   return esbuild.context({
-    entryPoints: ['src/webview/ui/main.ts'],
+    entryPoints: ["src/webview/ui/main.ts"],
     bundle: true,
-    format: 'iife',
+    format: "iife",
     minify: production,
     sourcemap: !production,
-    platform: 'browser',
-    target: ['es2022'],
-    outdir: 'dist/webview',
-    logLevel: 'silent',
-    entryNames: '[name]',
-    assetNames: '[name]',
+    platform: "browser",
+    target: ["es2022"],
+    outdir: "dist/webview",
+    logLevel: "silent",
+    entryNames: "[name]",
+    assetNames: "[name]",
     loader: {
-      '.css': 'css',
+      ".css": "css",
     },
-    plugins: [createProblemMatcherPlugin('webview')],
+    plugins: [createProblemMatcherPlugin("webview")],
   })
 }
 
@@ -101,8 +101,8 @@ async function main() {
       const cleanup = () => {
         htmlWatcher.close()
       }
-      process.on('SIGINT', cleanup)
-      process.on('SIGTERM', cleanup)
+      process.on("SIGINT", cleanup)
+      process.on("SIGTERM", cleanup)
     }
   } else {
     await Promise.all([extensionCtx.rebuild(), webviewCtx.rebuild()])
@@ -111,7 +111,7 @@ async function main() {
   }
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error(error)
   process.exit(1)
 })
